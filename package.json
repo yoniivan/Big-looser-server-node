@@ -10,11 +10,17 @@
     "jsonwebtoken": "^8.5.1",
     "mongoose": "^5.5.11",
     "morgan": "^1.9.1",
+    "nodemod": "^1.5.19",
     "nodemon": "^1.19.1"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "eslint": "^5.16.0",
+    "eslint-plugin-react": "^7.13.0",
+    "nodemon": "^1.19.1"
+  },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "nodemon server.js",
+    "lint": "./node_modules/.bin/eslint **/*.js"
   },
   "keywords": [
     "node",

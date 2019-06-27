@@ -3,11 +3,11 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const router = express.Router();
 
-const User = require('/home/yoni/projects/react/big-looser-node/userLoosers.js');
+const User = require('../Models/user');
 
 router.post('/', (req, res, next) => {
     console.log("POST in register");
-    console.log(req.body.password);
+    console.log(req.body.isAdmin);
     User.find( {eMail: req.body.eMail} ).exec().then(result => {
         if (result.length > 0) {
             return res.status(409).json({
@@ -21,15 +21,31 @@ router.post('/', (req, res, next) => {
                         message: err
                     });
                 }else {
-                    const user = new User({
-                        _id: new mongoose.Types.ObjectId(),
-                        firstName: req.body.firstName,
-                        lastName: req.body.lastName,
-                        eMail: req.body.eMail,
-                        password: hash
-                    });
+                    var user = null;
+                    var game = null;
+                    if (req.body.isAdmin == true){
+                        user = new User({
+                            firstName: req.body.firstName,
+                            lastName: req.body.lastName,
+                            eMail: req.body.eMail,
+                            password: hash,
+                            isAdmin: req.body.isAdmin,
+                            groupName: req.body.eMail,
+                        }); 
+
+                    }else{
+                        user = new User({
+                            _id: new mongoose.Types.ObjectId(),
+                            firstName: req.body.firstName,
+                            lastName: req.body.lastName,
+                            eMail: req.body.eMail,
+                            password: hash,
+                            isAdmin: req.body.isAdmin,
+                            groupName: 'No Group',
+                        });
+
+                    }
                     user.save().then(doc => {
-                        console.log(doc);
                         res.status(201).json({
                             message: "User created"
                         });
