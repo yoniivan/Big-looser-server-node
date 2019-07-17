@@ -35,10 +35,11 @@ router.get('/', checkAuth, (req, res, next) => {
     User.find({_id: decode._id}).then(data => {
         let arr = [];
         data[0].gameInsert.map(d => {
-            if(d.firstTeamBet == -1 && d.secondTeamBet == -1){
+            if(d.endResultFirst == -1 && d.endResultSecond == -1){
                 arr.push(d);
             }
         })
+        console
         res.status(200).json({arr});
     }).catch(err => {error: err});
 });
@@ -62,6 +63,7 @@ router.put('/', checkAuth, (req, res, next) => {
         let updateEndResult = async(groupName) =>{
             const update = await User.updateMany({groupName: groupName}, 
                 {$set: {
+                    "gameInsert.$[el].hasBeanUpdated": true,
                     "gameInsert.$[el].endResultFirst": Number(req.body.endResultFirst), 
                     "gameInsert.$[el].endResultSecond": Number(req.body.endResultSecond)}}, 
                 {arrayFilters: [{$and: [
@@ -75,90 +77,65 @@ router.put('/', checkAuth, (req, res, next) => {
         let findAllUsers = async(groupName) => {
             console.log('[findAllUsers]');
             const find = await User.find({groupName: groupName}).exec();
-            console.log('[find]');
-            
-            const exactScore = 0;
-            const zeroOne = 0;
-            const twoThree = 0;
-            const fourFive = 0;
-            const sixPlus = 0;
-            const direction = 0;
-            let points = 0;
-            
             for(let i = 0; i<find.length; i++){
                 for(let j = 0; j<find[i].gameInsert.length; j++){
-                    if(!find[i].gameInsert[j].isCalculated){ // IF NOT CALCULATED
+                    console.log('[isCalculated] - ' + find[i].gameInsert[j].isCalculated)
+                    if((find[i].gameInsert[j].isCalculated == false)){
+                        let totalScore = {
+                            exactScore: 0,
+                            zeroOne: 0,
+                            twoThree: 0,
+                            fourFive: 0,
+                            sixPlus: 0,
+                            direction: 0,
+                            points: 0,
+                        }
                         const firstTeamBet = find[i].gameInsert[j].firstTeamBet;
                         const secondTeamBet = find[i].gameInsert[j].secondTeamBet;
-
                         const endResultFirst = find[i].gameInsert[j].endResultFirst;
                         const endResultSecond = find[i].gameInsert[j].endResultSecond;
-
-                        const totalGoalsInGame = endResultFirst + endResultSecond;
-                        const userTotalGoalsBet = firstTeamBet + secondTeamBet
-                        const bingo = isExactScore(firstTeamBet, secondTeamBet, endResultFirst, endResultSecond);
-                        if(bingo){ ////////// EXACT_SCORE /////////
-                            if(totalGoalsInGame == 0 || totalGoalsInGame == 1){
-                                exactScore = 1;
-                                points = ZERO_ONE + EXACT_SCORE;
+                        const bingo = isExactScore(firstTeamBet, endResultFirst, secondTeamBet, endResultSecond);
+                        const goals = checkGoals(endResultFirst, endResultSecond, find[i].gameInsert[j].totalGoals);
+                        const direction = checkDirection(endResultFirst, endResultSecond, find[i].gameInsert[j].firstTeam, find[i].gameInsert[j].secondTeam, find[i].gameInsert[j].winningTeam);
+                        // EXACT_SCORE // 
+                        if(bingo && direction > 0 && goals > -1){
+                            totalScore.exactScore = 1;
+                            totalScore.points = goals + EXACT_SCORE;
+                        }else {
+                            /// GOALS ///
+                            if(goals > -1){
+                                    totalScore.zeroOne = 1;
+                                    totalScore.points = goals;
                             }
-                            else if(totalGoalsInGame == 2 || totalGoalsInGame == 3){
-                                exactScore = 1;
-                                points = ONE_TWO + EXACT_SCORE;
-                            }
-                            else if(totalGoalsInGame == 4 || totalGoalsInGame == 5){
-                                exactScore = 1;
-                                points = FOUR_FIVE + EXACT_SCORE;
-                            }
-                            else if(totalGoalsInGame >= 6){
-                                exactScore = 1;
-                                points = SIX_PLUS + EXACT_SCORE;
-                            }
-                        }else{
-                            ////////// NOT EXACT_SCORE /////////
-                            if(userTotalGoalsBet == totalGoalsInGame){ // GOALS_AMOUNT //
-                                if(userTotalGoalsBet == 0 || totalGoalsInGame == 1){
-                                    zeroOne = 1;
-                                    points = ZERO_ONE;
-                                }
-                                else if(userTotalGoalsBet == 2 || userTotalGoalsBet == 3){
-                                    twoThree = 1;
-                                    points = TWO_THREE
-                                }
-                                else if(userTotalGoalsBet == 4 || userTotalGoalsBet == 5){
-                                    fourFive = 1;
-                                    points = FOUR_FIVE;
-                                }
-                                else if(userTotalGoalsBet >= 6){
-                                    sixPlus = 1; 
-                                    points = SIX_PLUS;       
-                                }
-                            }
-                            ////////// DIRECTION /////////
-                            if((endResultFirst > endResultSecond && firstTeamBet > secondTeamBet) || (endResultFirst < endResultSecond && firstTeamBet < secondTeamBet)){
-                                direction = 1;
-                                points = totalScore.points + DIRECTION_NOT_EQUAL;
-                            }
-                            else if(endResultFirst == endResultSecond && firstTeamBet == secondTeamBet){
-                                direction = 1;
-                                points = totalScore.points + DIRECTION_EQUAL;
+                            /// DIRECTION ///
+                            if(direction == 1){
+                                totalScore.direction = 1;
+                                totalScore.points = totalScore.points + direction;
                             }
                         }
+                        let score = async(id) => {
+                        const update2 = await User.updateOne({_id: id}, {$set: {
+                                "gameInsert.$[el].isCalculated": true,
+                                "gameInsert.$[el].totalScore.exactScore": totalScore.exactScore, 
+                                "gameInsert.$[el].totalScore.zeroOne": totalScore.zeroOne,
+                                "gameInsert.$[el].totalScore.twoThree": totalScore.twoThree, 
+                                "gameInsert.$[el].totalScore.fourFive": totalScore.fourFive,
+                                "gameInsert.$[el].totalScore.sixPlus": totalScore.sixPlus, 
+                                "gameInsert.$[el].totalScore.direction": totalScore.direction, 
+                                "gameInsert.$[el].totalScore.points": totalScore.points
+                            }}, 
+                            {upsert: true, arrayFilters: [{$and: [
+                                {"el.firstTeam": find[i].gameInsert[j].firstTeam},
+                                {"el.secondTeam": find[i].gameInsert[j].secondTeam}
+                            ]}
+                            ]}).exec();
+                            return update2;
+                        }
+                        score(find[i]._id);
                     }
-                    console.log(points)
-                    await User.updateOne({eMail: find[i].eMail}, {$set: {
-                        "exactScore.$[el].exactScore": exactScore,
-                        "exactScore.$[el].zeroOne": zeroOne,
-                        "exactScore.$[el].twoThree": twoThree,
-                        "exactScore.$[el].fourFive": fourFive,
-                        "exactScore.$[el].sixPlus": sixPlus,
-                        "exactScore.$[el].direction": direction,
-                        "exactScore.$[el].points": points}}
-                        ,{upsert: true, arrayFilters: [{$and: [
-                            {"el.firstTeam": req.body.firstTeamBet},
-                            {"el.secondTeam": req.body.secondTeamBet}
-                        ]}]}).exec();
+
                 }
+                
             }
         }
         findAllUsers(decode.groupName).then(data => {
@@ -172,43 +149,51 @@ const isExactScore = (x1, x2, y1, y2) => {
     if((x1 == x2) && (y1 == y2))
         return true;
     return false;
+};
+
+const totalGoals = (x1, x2) => {
+    return x1 + x2;   
+};
+
+const checkDirection = (x1, x2, team1, team2, direction) => {
+    if(x1 == x2 && direction == 'Draw')
+        return DIRECTION_EQUAL;
+    if((x1 > x2 && direction == team1) || (x1 < x2 && direction == team2))
+        return DIRECTION_NOT_EQUAL;   
+    return -1;     
+};
+
+const checkGoals = (x1, x2, totalGoals) => {
+    const goals = x1 + x2;
+    if((goals == 0 || goals == 1) && (totalGoals == 1))
+        return ZERO_ONE;
+    if((goals == 2 || goals == 3) && (totalGoals == 3))
+        return TWO_THREE;
+    if((goals == 4 || goals == 5) && (totalGoals == 5))
+        return FOUR_FIVE;
+    if(goals >= 6 && totalGoals == 6)
+        return SIX_PLUS;  
+    return -1;
 }
-
-
 
 
 module.exports = router;
 
 
-
-
-// router.put('/', checkAuth, (req, res, next) => {
-//     var token = req.headers.authorization.split(' ')[1];
-//     var decode = jwt.verify(token, 'secret');
-//     ////// DELETE GAME ////////
-//     if(!req.body.isUpdate){
-//         console.log('[DELETE] - ' + req.body.isUpdate);
-//         User.updateMany(
-//             {groupName: decode.groupName},
-//             {$pull: {gameInsert: {$and: [
-//                 {_id: req.body.gameId}
-//             ]}}}).then(data => {res.status(201).json({message: 'Game was deleted'})})
-//             .catch(err => {message: err});
-//     ///////// UPDATE GAME ///////////
-//     }else{
-//         console.log('[UPDATE] - ' + req.body.isUpdate);
-//         console.log('[gameId] - ' + req.body.gameId);
-//         User.updateMany({groupName: decode.groupName}, 
-//             {$set: {
-//                 "gameInsert.$[el].endResultFirst": Number(req.body.endResultSecond), 
-//                 "gameInsert.$[el].endResultSecond": Number(req.body.endResultFirst)}}, 
-//             {arrayFilters: [{$and: [
-//                 {"el.firstTeam": req.body.firstTeam},
-//                 {"el.secondTeam": req.body.secondTeam}
-//             ]}
-//             ]}).then(data => {
-//                 console.log(data);
-//                  res.status(201).json({message: 'Bet updated'});
-//              }).catch(err => {message: err});
-//     }
-// });
+                            // if(totalGoals(endResultFirst, endResultSecond) == 0 || totalGoals(endResultFirst, endResultSecond) == 1){
+                            //     totalScore.exactScore = 1;
+                            //     totalScore.points = ZERO_ONE + EXACT_SCORE;
+                            //     console.log('[0-1]' + totalGoals(endResultFirst, endResultSecond))
+                            // }else if(totalGoals(endResultFirst, endResultSecond) == 2 || totalGoals(endResultFirst, endResultSecond) == 3){
+                            //     totalScore.exactScore = 1;
+                            //     totalScore.points = TWO_THREE + EXACT_SCORE;
+                            //     console.log('[2-3]' + totalGoals(endResultFirst, endResultSecond))
+                            // }else if(totalGoals(endResultFirst, endResultSecond) == 4 || totalGoals(endResultFirst, endResultSecond) == 5){
+                            //     totalScore.exactScore = 1;
+                            //     totalScore.points = FOUR_FIVE + EXACT_SCORE;
+                            //     console.log('[4-5]' + totalGoals(endResultFirst, endResultSecond))
+                            // }else if(totalGoals(endResultFirst, endResultSecond) >= 6){
+                            //     totalScore.exactScore = 1;
+                            //     totalScore.points = SIX_PLUS + EXACT_SCORE;
+                            //     console.log('[6+]' + totalGoals(endResultFirst, endResultSecond))
+                            // }

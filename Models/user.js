@@ -7,6 +7,12 @@ const userSchema = mongoose.Schema({
     password: {type: String},
     isAdmin: {type: Boolean},
     groupName: {type: String, default: 'No group'},
+    message: {
+        title: {type: String},
+        message: {type: String},
+        date: {type: Date, default: Date.now},
+    },
+
     gameInsert: [{
         firstTeam: {type: String},
         secondTeam: {type: String},
@@ -18,6 +24,7 @@ const userSchema = mongoose.Schema({
         endResultFirst: {type: Number, default: -1},
         endResultSecond: {type: Number, default: -1},
 
+        hasBeanUpdated: {type: Boolean, default: false},
         isCalculated: {type: Boolean, default: false},
         totalScore: {
             exactScore: {type: Number, default: 0},

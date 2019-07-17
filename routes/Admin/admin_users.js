@@ -8,6 +8,7 @@ router.get('/', checkAuth, (req, res, next) => {
     console.log('GET all users');
     var token = req.headers.authorization.split(' ')[1];
     var decode = jwt.verify(token, 'secret');
+    console.log(decode.groupName)
     User.find({groupName: decode.groupName}).exec().then(doc => {
         res.status(200).json(doc);
     }).catch(err => {
@@ -20,15 +21,19 @@ router.get('/', checkAuth, (req, res, next) => {
 router.post('/', (req, res, next) => {
     console.log('[USERS]');
     User.findOne({eMail: req.body.email}).then(data => {
-        res.status(200).json({
-            id: data._id,
-            email: data.eMail,
-            firstName: data.firstName,
-            lastName: data.lastName,
-            groupName: data.groupName,
-        });
+        if(!(data === null)){
+            res.status(200).json({
+                id: data._id,
+                email: data.eMail,
+                firstName: data.firstName,
+                lastName: data.lastName,
+                groupName: data.groupName,
+            });
+        }else{
+            res.status(400).json({message: 'No such Email'});
+        }
     }).catch(err => {
-        res.status(500).json({message: err});
+        res.status(500).json({message: 'No such Email'});
     })
 })
 
@@ -47,9 +52,7 @@ router.put('/', (req, res, next) => {
                 groupName: doc.groupName,
                 isAdmin: doc.isAdmin,
             });
-        }).catch(err => {
-            error: err;
-        });
+        }).catch(err => err);
     }else{
         User.findByIdAndUpdate({_id: req.body.id}, {$set: {groupName: 'No group'}}).then(doc => {
             res.status(201).json({

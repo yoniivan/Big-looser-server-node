@@ -8,8 +8,6 @@ const UserLooser = require('../Models/user');
 ////////////// Testing /////////////
 router.get('/', (req, res, next) => {
     console.log('GET all users');
-    var token = req.headers['Authorization'];
-    console.log('[TOKEN]' + token)
     UserLooser.find().exec().then(doc => {
         res.status(200).json(doc);
     }).catch(err => {
@@ -43,8 +41,9 @@ router.post('/', (req, res, next) => {
         }
         bcrypt.compare(req.body.password, user.password, (err, result) => {
             if (err) {
-                return res.status(401).json({
-                    message: 'Bcrypt failed'
+                return res.status(402).json({
+                    message: 'Bcrypt failed',
+                    status: 402,
                 });
             }if (result) {
                 const payload = {
@@ -59,13 +58,14 @@ router.post('/', (req, res, next) => {
                 {
                     expiresIn: '3h'
                 });
-                res.json({
+                res.status(200).json({
                     message: 'You are login',
                     token: token,
                 });
             }else {
                 res.status(401).json({
-                    message: 'Your password is incorect'
+                    message: 'Your password is incorect',
+                    status: 401,
                 });
             }
         });

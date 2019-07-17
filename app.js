@@ -9,6 +9,8 @@ const register = require('./routes/register');
 const insertGame = require('./routes/Admin/admin_Games');
 const users = require('./routes/Admin/admin_users');
 const games_simple = require('./routes/User_simple/games_simple');
+const table_simple  = require('./routes/User_simple/table_simple');
+const admin_message = require('./routes/Admin/admin_message'); 
 
 mongoose.connect('mongodb+srv://yoniivan:' + 'yoni231252' + '@cluster0-adopv.mongodb.net/test?retryWrites=true', {
     useNewUrlParser: true
@@ -35,6 +37,9 @@ app.use('/register', register);
 app.use('/gameinsert', insertGame);
 app.use('/users', users);
 app.use('/games_simple', games_simple);
+app.use('/table', table_simple);
+app.use('/message', admin_message);
+
 
 app.use((req, res, next) => {
     const error = new Error('Not found');
