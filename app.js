@@ -12,11 +12,12 @@ const games_simple = require('./routes/User_simple/games_simple');
 const table_simple  = require('./routes/User_simple/table_simple');
 const admin_message = require('./routes/Admin/admin_message'); 
 
-mongoose.connect('mongodb+srv://yoniivan:' + 'yoni231252' + '@cluster0-adopv.mongodb.net/test?retryWrites=true', {
+mongoose.connect('mongodb+srv://'+ process.env.USER + ':' + process.env.MONGO_ATLAS_PW + '@cluster0-adopv.mongodb.net/test?retryWrites=true', {
     useNewUrlParser: true
 })
 
 app.use((req, res, next) => {
+    // console.log(process.env);
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Headers", "*");
     res.header("Access-Control-Allow-Methods", "PUT, POST, PATCH, DELETE, GET");
